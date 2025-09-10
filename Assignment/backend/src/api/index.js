@@ -1,15 +1,11 @@
-import adminRoutes from '../routes/admin.js';
-router.use("/admin", adminRoutes);
-import ratingRoutes from '../routes/rating.js';
-router.use("/rating", ratingRoutes);
 import express from "express";
-
 import emojis from "./emojis.js";
+import adminRoutes from '../routes/admin.js';
+import ratingRoutes from '../routes/rating.js';
 import authRoutes from '../routes/auth.js';
 import storeRoutes from '../routes/store.js';
 
 const router = express.Router();
-
 
 router.get("/", (req, res) => {
   res.json({
@@ -18,6 +14,8 @@ router.get("/", (req, res) => {
 });
 
 router.use("/emojis", emojis);
+router.use("/admin", adminRoutes);
+router.use("/rating", ratingRoutes);
 router.use("/auth", authRoutes);
 router.use("/store", storeRoutes);
 

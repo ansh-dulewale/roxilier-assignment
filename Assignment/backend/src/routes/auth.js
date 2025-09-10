@@ -1,8 +1,18 @@
+
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { body, validationResult } from 'express-validator';
+import User from '../models/User.js';
+
+const router = express.Router();
+
 // Logout route (JWT-based, just a placeholder for frontend to clear token)
 router.post('/logout', (req, res) => {
   // On frontend, simply delete the JWT token from storage
   res.json({ message: 'Logged out successfully' });
 });
+
 // Update password route
 router.post('/update-password', [
   body('userId').isInt(),
@@ -28,13 +38,6 @@ router.post('/update-password', [
     res.status(500).json({ error: 'Server error' });
   }
 });
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { body, validationResult } from 'express-validator';
-import User from '../models/User.js';
-
-const router = express.Router();
 
 // Registration route
 router.post('/register', [
