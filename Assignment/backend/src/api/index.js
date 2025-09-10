@@ -1,3 +1,7 @@
+import adminRoutes from '../routes/admin.js';
+router.use("/admin", adminRoutes);
+import ratingRoutes from '../routes/rating.js';
+router.use("/rating", ratingRoutes);
 import express from "express";
 
 import emojis from "./emojis.js";
