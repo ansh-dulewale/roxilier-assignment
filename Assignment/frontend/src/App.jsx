@@ -7,6 +7,7 @@ import UserProfile from './pages/UserProfile.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
 import { useContext } from 'react';
 import { AuthContext } from './AuthContext.jsx';
+import Auth from './pages/Auth.jsx';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role, loading } = useContext(AuthContext);
@@ -22,8 +23,7 @@ function App() {
   return (
     <BrowserRouter>
       <nav className="p-4 bg-gray-100 flex flex-wrap gap-4 items-center">
-        {!user && <Link to="/register">Register</Link>}
-        {!user && <Link to="/login">Login</Link>}
+        {!user && <Link to="/auth">Login / Register</Link>}
         {user && <Link to="/stores">Stores</Link>}
         {user && role === "store-owner" && <Link to="/store-owner">Store Owner Dashboard</Link>}
         {user && <Link to="/profile">Profile</Link>}
@@ -31,8 +31,7 @@ function App() {
         {user && <button className="ml-auto bg-red-500 text-white px-3 py-1 rounded" onClick={logout}>Logout</button>}
       </nav>
       <Routes>
-        <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
-        <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+  <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />
         <Route path="/stores" element={
           <ProtectedRoute allowedRoles={["user", "admin", "store-owner"]}>
             <StoreList />

@@ -36,15 +36,17 @@ const Login = () => {
   };
 
   return (
-    <div className="login-container">
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} required />
-        <input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} required />
-        <button type="submit">Login</button>
-      </form>
-      {error && <div className="error">{error}</div>}
-      {success && <div className="success">{success}</div>}
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-blue-700 text-center">Login</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} required className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          <input name="password" type="password" placeholder="Password" value={form.password} onChange={handleChange} required className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-300" />
+          <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full font-semibold transition">Login</button>
+        </form>
+        {error && <div className="text-red-600 mt-4 text-center font-semibold">{error}</div>}
+        {success && <div className="text-green-600 mt-4 text-center font-semibold">{success}</div>}
+      </div>
     </div>
   );
 };
