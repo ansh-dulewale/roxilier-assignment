@@ -15,7 +15,10 @@ const StoreList = () => {
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
 
-  useEffect(() => {
+  // Fetch stores and user ratings
+  const fetchStoresAndRatings = () => {
+    setLoading(true);
+    setError(null);
     fetch("http://localhost:3000/api/store")
       .then((res) => res.json())
       .then((data) => {
@@ -40,6 +43,10 @@ const StoreList = () => {
           setUserRatings(ratingsMap);
         });
     }
+  };
+
+  useEffect(() => {
+    fetchStoresAndRatings();
   }, []);
   const handleRatingSubmit = (storeId) => {
     setRatingLoading(true);
@@ -55,6 +62,8 @@ const StoreList = () => {
         setUserRatings((prev) => ({ ...prev, [storeId]: ratingValue }));
         setSelectedStore(null);
         setRatingLoading(false);
+        // Refresh store list after rating
+        fetchStoresAndRatings();
       })
       .catch(() => {
         setRatingError("Failed to submit rating");
@@ -64,8 +73,10 @@ const StoreList = () => {
 
 
   const filteredStores = stores.filter((store) => {
-    const matchesName = store.name.toLowerCase().includes(nameFilter.toLowerCase());
-    const matchesLocation = store.location.toLowerCase().includes(locationFilter.toLowerCase());
+    const matchesName = store.name?.toLowerCase().includes(nameFilter.toLowerCase());
+    // Use address as location fallback if location is missing
+    const locationValue = store.location || store.address || "";
+    const matchesLocation = locationValue.toLowerCase().includes(locationFilter.toLowerCase());
     return matchesName && matchesLocation;
   });
 
@@ -121,13 +132,20 @@ const StoreList = () => {
           <option value="desc">Descending</option>
         </select>
       </div>
+      <button
+        className="bg-gray-200 px-3 py-1 rounded mb-4"
+        onClick={fetchStoresAndRatings}
+        disabled={loading}
+      >
+        Refresh
+      </button>
       <ul className="space-y-4">
         {sortedStores.map((store) => (
           <li key={store.id} className="border p-4 rounded shadow">
             <h3 className="text-xl font-semibold">{store.name}</h3>
             <p>{store.description}</p>
-            <p>Location: {store.location}</p>
-            <p>Average Rating: {store.avgRating || "N/A"}</p>
+            <p>Location: {store.location || store.address || "N/A"}</p>
+            <p>Average Rating: {store.avgRating !== undefined ? store.avgRating : "N/A"}</p>
             <p>Your Rating: {userRatings[store.id] ? userRatings[store.id] : "Not rated"}</p>
             <button
               className="bg-blue-500 text-white px-2 py-1 rounded mt-2"

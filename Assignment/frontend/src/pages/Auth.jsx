@@ -1,7 +1,25 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../AuthContext.jsx";
 
 const Auth = () => {
   const [tab, setTab] = useState("login");
+  const navigate = useNavigate();
+  const { user, login } = useContext(AuthContext);
+  // Redirect after login if user context updates
+  useEffect(() => {
+    if (user) {
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else if (["store-owner", "owner"].includes(user.role)) {
+        navigate("/store-owner");
+      } else if (user.role === "user") {
+        navigate("/stores");
+      } else {
+        navigate("/auth");
+      }
+    }
+  }, [user, navigate]);
   const [form, setForm] = useState({
     username: "",
     email: "",
@@ -36,6 +54,18 @@ const Auth = () => {
         } else {
           setSuccess("Login successful!");
           localStorage.setItem("token", data.token);
+          // Save user info and redirect
+          login(data.user); // expects backend to return user object
+          console.log("Login role:", data.user.role); // Debug log
+          if (data.user.role === "admin") {
+            navigate("/admin");
+          } else if (["store-owner", "owner"].includes(data.user.role)) {
+            navigate("/store-owner");
+          } else if (data.user.role === "user") {
+            navigate("/stores");
+          } else {
+            navigate("/auth");
+          }
         }
       } catch {
         setError("Server error");
