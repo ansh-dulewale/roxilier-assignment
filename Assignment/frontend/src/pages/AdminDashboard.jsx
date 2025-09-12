@@ -13,15 +13,15 @@ const AdminDashboard = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/admin/dashboard")
+  fetch("http://localhost:3000/api/v1/admin/dashboard")
       .then(res => res.json())
       .then(data => setStats(data))
       .catch(() => {});
-    fetch("http://localhost:3000/api/admin/users")
+  fetch("http://localhost:3000/api/v1/admin/users")
       .then(res => res.json())
       .then(data => setUsers(data.users || []))
       .catch(() => {});
-    fetch("http://localhost:3000/api/admin/stores")
+  fetch("http://localhost:3000/api/v1/admin/stores")
       .then(res => res.json())
       .then(data => setStores(data.stores || []))
       .catch(() => {});
@@ -42,7 +42,7 @@ const AdminDashboard = () => {
   const handleAddUser = e => {
     e.preventDefault();
     setError(""); setSuccess("");
-    fetch("http://localhost:3000/api/admin/add-user", {
+  fetch("http://localhost:3000/api/v1/admin/add-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(addUserForm),
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
   const handleAddStore = e => {
     e.preventDefault();
     setError(""); setSuccess("");
-    fetch("http://localhost:3000/api/admin/add-store", {
+  fetch("http://localhost:3000/api/v1/admin/add-store", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(addStoreForm),
