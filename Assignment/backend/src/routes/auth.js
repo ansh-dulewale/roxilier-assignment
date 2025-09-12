@@ -1,3 +1,13 @@
+
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { body, validationResult } from 'express-validator';
+import User from '../models/User.js';
+import sequelize from '../sequelize.js';
+
+const router = express.Router();
+
 // Get user details by id
 router.get('/user/id/:id', async (req, res) => {
   const { id } = req.params;
@@ -13,15 +23,6 @@ router.get('/user/id/:id', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { body, validationResult } from 'express-validator';
-import User from '../models/User.js';
-import sequelize from '../sequelize.js';
-
-const router = express.Router();
 
 // Logout route (JWT-based, just a placeholder for frontend to clear token)
 router.post('/logout', (req, res) => {
