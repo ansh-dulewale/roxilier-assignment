@@ -19,7 +19,7 @@ const StoreList = () => {
   const fetchStoresAndRatings = () => {
     setLoading(true);
     setError(null);
-    fetch("http://localhost:3000/api/store")
+  fetch("http://localhost:3000/api/v1/store/list")
       .then((res) => res.json())
       .then((data) => {
         setStores(data.stores || []);

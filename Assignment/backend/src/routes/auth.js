@@ -1,9 +1,25 @@
+// Get user details by id
+router.get('/user/id/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findByPk(id, {
+      attributes: ['id', 'name', 'email', 'address', 'role']
+    });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
+import sequelize from '../sequelize.js';
 
 const router = express.Router();
 
@@ -66,27 +82,50 @@ router.post('/register', [
   }
 });
 
-// Login route
-router.post('/login', [
-  body('email').isEmail(),
-  body('password').exists(),
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  const { email, password } = req.body;
+// // Login route
+// router.post('/login', [
+//   body('email').isEmail(),
+//   body('password').exists(),
+// ], async (req, res) => {
+//   const errors = validationResult(req);
+//   if (!errors.isEmpty()) {
+//     return res.status(400).json({ errors: errors.array() });
+//   }
+//   const { email, password } = req.body;
+//   try {
+//     const user = await User.findOne({ where: { email } });
+//     if (!user) {
+//       return res.status(400).json({ error: 'Invalid credentials' });
+//     }
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) {
+//       return res.status(400).json({ error: 'Invalid credentials' });
+//     }
+//     const token = jwt.sign({ id: user.id, role: user.role }, 'your_jwt_secret', { expiresIn: '1h' });
+//     res.json({ token, user });
+//   } catch (err) {
+//     res.status(500).json({ error: 'Server error' });
+//   }
+// });
+
+// Get user details by email
+router.get('/user/email/:email', async (req, res) => {
+  let { email } = req.params;
   try {
-    const user = await User.findOne({ where: { email } });
+    // Decode email in case it's URL-encoded
+    email = decodeURIComponent(email);
+    // Case-insensitive search for email
+    const user = await User.findOne({
+      where: sequelize.where(
+        sequelize.fn('LOWER', sequelize.col('email')),
+        email.toLowerCase()
+      ),
+      attributes: ['id', 'name', 'email', 'address', 'role']
+    });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      return res.status(404).json({ error: 'User not found' });
     }
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-    const token = jwt.sign({ id: user.id, role: user.role }, 'your_jwt_secret', { expiresIn: '1h' });
-    res.json({ token, user });
+    res.json({ user });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

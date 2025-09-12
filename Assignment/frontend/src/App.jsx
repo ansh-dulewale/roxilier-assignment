@@ -13,7 +13,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   const { user, role, loading } = useContext(AuthContext);
   if (loading) return <div>Loading...</div>;
   if (!user || (allowedRoles && !allowedRoles.includes(role))) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/auth" replace />;
   }
   return children;
 }

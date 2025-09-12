@@ -10,9 +10,15 @@ const UserProfile = () => {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    // Assume userId is stored in localStorage after login
-    const userId = localStorage.getItem("userId");
-    fetch(`http://localhost:3000/api/auth/user/${userId}`)
+    // Get user id from localStorage (user object)
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const id = storedUser?.id;
+    if (!id) {
+      setError("No user id found in localStorage");
+      setLoading(false);
+      return;
+    }
+    fetch(`http://localhost:3000/api/v1/auth/user/id/${id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
