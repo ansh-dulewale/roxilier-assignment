@@ -13,18 +13,26 @@ const AdminDashboard = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-  fetch("http://localhost:3000/api/v1/admin/dashboard")
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(() => {});
-  fetch("http://localhost:3000/api/v1/admin/users")
+    // Initial fetch
+    const fetchStats = () => {
+      fetch("http://localhost:3000/api/v1/admin/dashboard")
+        .then(res => res.json())
+        .then(data => setStats(data))
+        .catch(() => {});
+    };
+    fetchStats();
+    // Poll every 5 seconds
+    const interval = setInterval(fetchStats, 5000);
+    // Users and stores only need to be fetched once (unless you want them realtime too)
+    fetch("http://localhost:3000/api/v1/admin/users")
       .then(res => res.json())
       .then(data => setUsers(data.users || []))
       .catch(() => {});
-  fetch("http://localhost:3000/api/v1/admin/stores")
+    fetch("http://localhost:3000/api/v1/admin/stores")
       .then(res => res.json())
       .then(data => setStores(data.stores || []))
       .catch(() => {});
+    return () => clearInterval(interval);
   }, []);
 
   const filteredUsers = users.filter(u =>
