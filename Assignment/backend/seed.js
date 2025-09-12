@@ -4,37 +4,29 @@ import User from './src/models/User.js';
 import Store from './src/models/Store.js';
 import Rating from './src/models/Rating.js';
 
-async function seed() {
-  // Additional sample stores
-  await Store.create({
-    name: 'Fresh Mart',
-    email: 'contact@freshmart.com',
-    address: '12 Market St',
-    description: 'Organic groceries and fresh produce',
-    ownerId: owner2.id
-  });
-  await Store.create({
-    name: 'Fitness Zone',
-    email: 'info@fitnesszone.com',
-    address: '88 Workout Ave',
-    description: 'Gym and fitness equipment',
-    ownerId: owner1.id
-  });
-  await Store.create({
-    name: 'Pet Paradise',
-    email: 'hello@petparadise.com',
-    address: '7 Animal Rd',
-    description: 'Pet supplies and grooming',
-    ownerId: owner2.id
-  });
-  await sequelize.sync({ force: true }); // WARNING: This will drop all tables!
+// Helper to recompute and persist average rating per store
+async function recomputeStoreRatings() {
+  const stores = await Store.findAll();
+  for (const store of stores) {
+    const ratings = await Rating.findAll({ where: { storeId: store.id } });
+    if (ratings.length) {
+      const avg = ratings.reduce((s, r) => s + r.rating, 0) / ratings.length;
+      store.rating = Number(avg.toFixed(2));
+      await store.save();
+    }
+  }
+}
 
-  // Create users
+async function seed() {
+  // 1. Recreate schema first so subsequent inserts use fresh tables
+  await sequelize.sync({ force: true }); // WARNING: destructive in non-dev environments
+
+  // 2. Create users (admin, owners, regular users)
   const admin = await User.create({
     name: 'Administrator John Smith',
     email: 'admin@example.com',
     address: '123 Admin St',
-    password: 'admin123',
+    password: 'admin123', // In production seed, hash before saving
     role: 'admin'
   });
   const owner1 = await User.create({
@@ -42,14 +34,14 @@ async function seed() {
     email: 'owner1@example.com',
     address: '456 Owner Ave',
     password: 'owner123',
-  role: 'owner'
+    role: 'owner'
   });
   const owner2 = await User.create({
     name: 'Store Owner Bob Williams',
     email: 'owner2@example.com',
     address: '789 Owner Blvd',
     password: 'owner123',
-  role: 'owner'
+    role: 'owner'
   });
   const user1 = await User.create({
     name: 'Regular User Charlie Brown',
@@ -66,7 +58,7 @@ async function seed() {
     role: 'user'
   });
 
-  // Create stores
+  // 3. Create core stores referencing existing owners
   const storeA = await Store.create({
     name: 'Coffee Corner',
     email: 'coffee@corner.com',
@@ -89,14 +81,40 @@ async function seed() {
     ownerId: owner1.id
   });
 
-  // Create ratings
+  // 4. Additional sample stores (moved AFTER owner creation)
+  await Store.create({
+    name: 'Fresh Mart',
+    email: 'contact@freshmart.com',
+    address: '12 Market St',
+    description: 'Organic groceries and fresh produce',
+    ownerId: owner2.id
+  });
+  await Store.create({
+    name: 'Fitness Zone',
+    email: 'info@fitnesszone.com',
+    address: '88 Workout Ave',
+    description: 'Gym and fitness equipment',
+    ownerId: owner1.id
+  });
+  await Store.create({
+    name: 'Pet Paradise',
+    email: 'hello@petparadise.com',
+    address: '7 Animal Rd',
+    description: 'Pet supplies and grooming',
+    ownerId: owner2.id
+  });
+
+  // 5. Create ratings for some stores
   await Rating.create({ storeId: storeA.id, userId: user1.id, rating: 5, comment: 'Amazing coffee!' });
   await Rating.create({ storeId: storeA.id, userId: user2.id, rating: 4, comment: 'Nice ambiance.' });
   await Rating.create({ storeId: storeB.id, userId: user1.id, rating: 3, comment: 'Good selection.' });
   await Rating.create({ storeId: storeC.id, userId: user2.id, rating: 5, comment: 'Great tech deals!' });
 
+  // 6. Recompute average rating column values
+  await recomputeStoreRatings();
+
   console.log('Seed data inserted successfully.');
-  process.exit();
+  process.exit(0);
 }
 
 seed().catch(err => {
