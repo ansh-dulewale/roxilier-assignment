@@ -1,9 +1,10 @@
-// Sequelize configuration for MySQL
-const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize('roxilier_db', 'root', 'password', {
+// Sequelize configuration for MySQL (ES module)
+import { Sequelize } from 'sequelize';
+
+const sequelize = new Sequelize('roxilier_db', 'root', 'Dulewale@12', {
   host: 'localhost',
   dialect: 'mysql',
 });
 
-module.exports = sequelize;
+export default sequelize;
