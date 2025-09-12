@@ -31,7 +31,7 @@ function App() {
         {user && <button className="ml-auto bg-red-500 text-white px-3 py-1 rounded" onClick={logout}>Logout</button>}
       </nav>
       <Routes>
-  <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/" />} />
+  <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/auth" />} />
         <Route path="/stores" element={
           <ProtectedRoute allowedRoles={["user"]}>
             <StoreList />
