@@ -1,3 +1,13 @@
+
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { body, validationResult } from 'express-validator';
+import User from '../models/User.js';
+import sequelize from '../sequelize.js';
+
+const router = express.Router();
+
 // Get admin details by email
 router.get('/admin/email/:email', async (req, res) => {
   let { email } = req.params;
@@ -18,15 +28,6 @@ router.get('/admin/email/:email', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
-import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { body, validationResult } from 'express-validator';
-import User from '../models/User.js';
-import sequelize from '../sequelize.js';
-
-const router = express.Router();
 
 // Get user details by id
 router.get('/user/id/:id', async (req, res) => {

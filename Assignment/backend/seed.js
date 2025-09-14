@@ -24,60 +24,63 @@ async function seed() {
 
   // 2. Create users (admin, owners, regular users)
   const adminPassword = await bcrypt.hash('admin123', 10);
+  const ownerPassword = await bcrypt.hash('owner123', 10);
+  const userPassword = await bcrypt.hash('user123', 10);
+
   const admin = await User.create({
     name: 'Administrator John Smith',
     email: 'admin@example.com',
     address: '123 Admin St',
-    password: adminPassword, // Hashed password
+    password: adminPassword,
     role: 'admin'
   });
   const owner1 = await User.create({
     name: 'Store Owner Alice Johnson',
     email: 'owner1@example.com',
     address: '456 Owner Ave',
-    password: 'owner123',
+    password: ownerPassword,
     role: 'owner'
   });
   const owner2 = await User.create({
     name: 'Store Owner Bob Williams',
     email: 'owner2@example.com',
     address: '789 Owner Blvd',
-    password: 'owner123',
+    password: ownerPassword,
     role: 'owner'
   });
   const user1 = await User.create({
     name: 'Regular User Charlie Brown',
     email: 'user1@example.com',
     address: '101 User Rd',
-    password: 'user123',
+    password: userPassword,
     role: 'user'
   });
   const user2 = await User.create({
     name: 'Regular User Dana White',
     email: 'user2@example.com',
     address: '202 User Ln',
-    password: 'user123',
+    password: userPassword,
     role: 'user'
   });
 
   // 3. Create core stores referencing existing owners
   const storeA = await Store.create({
     name: 'Coffee Corner',
-    email: 'coffee@corner.com',
+    email: 'coffee.corner@corner.com',
     address: '1 Java Lane',
     description: 'Best coffee in town',
     ownerId: owner1.id
   });
   const storeB = await Store.create({
     name: 'Book Haven',
-    email: 'info@bookhaven.com',
+    email: 'book.haven@bookhaven.com',
     address: '22 Library Ave',
     description: 'Wide range of books',
     ownerId: owner2.id
   });
   const storeC = await Store.create({
     name: 'Tech Hub',
-    email: 'contact@techhub.com',
+    email: 'tech.hub@techhub.com',
     address: '99 Silicon Blvd',
     description: 'Latest gadgets and accessories',
     ownerId: owner1.id
@@ -86,21 +89,21 @@ async function seed() {
   // 4. Additional sample stores (moved AFTER owner creation)
   await Store.create({
     name: 'Fresh Mart',
-    email: 'contact@freshmart.com',
+    email: 'fresh.mart@freshmart.com',
     address: '12 Market St',
     description: 'Organic groceries and fresh produce',
     ownerId: owner2.id
   });
   await Store.create({
     name: 'Fitness Zone',
-    email: 'info@fitnesszone.com',
+    email: 'fitness.zone@fitnesszone.com',
     address: '88 Workout Ave',
     description: 'Gym and fitness equipment',
     ownerId: owner1.id
   });
   await Store.create({
     name: 'Pet Paradise',
-    email: 'hello@petparadise.com',
+    email: 'pet.paradise@petparadise.com',
     address: '7 Animal Rd',
     description: 'Pet supplies and grooming',
     ownerId: owner2.id
