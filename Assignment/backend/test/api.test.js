@@ -13,5 +13,3 @@ describe("GET /api/v1", () => {
         message: "API - 👋🌎🌍🌏",
       }));
 });
-
-// removed demo /emojis test as the route is no longer part of the API
