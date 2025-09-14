@@ -3,6 +3,7 @@ import sequelize from './src/sequelize.js';
 import User from './src/models/User.js';
 import Store from './src/models/Store.js';
 import Rating from './src/models/Rating.js';
+import bcrypt from 'bcryptjs';
 
 // Helper to recompute and persist average rating per store
 async function recomputeStoreRatings() {
@@ -22,11 +23,12 @@ async function seed() {
   await sequelize.sync({ force: true }); // WARNING: destructive in non-dev environments
 
   // 2. Create users (admin, owners, regular users)
+  const adminPassword = await bcrypt.hash('admin123', 10);
   const admin = await User.create({
     name: 'Administrator John Smith',
     email: 'admin@example.com',
     address: '123 Admin St',
-    password: 'admin123', // In production seed, hash before saving
+    password: adminPassword, // Hashed password
     role: 'admin'
   });
   const owner1 = await User.create({

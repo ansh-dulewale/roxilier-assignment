@@ -8,7 +8,7 @@ const StoreOwnerDashboard = () => {
   const [error, setError] = useState(null);
   const [password, setPassword] = useState("");
   const [success, setSuccess] = useState("");
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
 
   useEffect(() => {
     // Use user.id or user.storeId for API call
@@ -31,15 +31,19 @@ const StoreOwnerDashboard = () => {
     e.preventDefault();
     setError(null);
     setSuccess("");
-    fetch(`http://localhost:3000/api/auth/update-password`, {
+    fetch(`http://localhost:3000/api/v1/auth/update-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, password }),
+      body: JSON.stringify({ userId: user.id, oldPassword: password, newPassword: password }),
     })
       .then((res) => res.json())
-      .then(() => {
-        setSuccess("Password updated successfully.");
-        setPassword("");
+      .then((data) => {
+        if (data.errors || data.error) {
+          setError(data.errors ? data.errors.map(e => e.msg).join(", ") : data.error);
+        } else {
+          setSuccess("Password updated successfully.");
+          setPassword("");
+        }
       })
       .catch(() => {
         setError("Failed to update password");
@@ -52,6 +56,7 @@ const StoreOwnerDashboard = () => {
   return (
     <div className="p-4 max-w-xl mx-auto">
       <h2 className="text-2xl font-bold mb-4 text-blue-700">Store Owner Dashboard</h2>
+      <button className="bg-gray-500 text-white px-4 py-2 rounded mb-4" onClick={logout}>Log Out</button>
       <form onSubmit={handlePasswordUpdate} className="mb-6 space-y-2">
         <label className="block font-semibold">Update Password:</label>
         <input
