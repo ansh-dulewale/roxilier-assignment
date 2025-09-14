@@ -1,11 +1,3 @@
-import express from 'express';
-import { body, query, validationResult } from 'express-validator';
-import Store from '../models/Store.js';
-import User from '../models/User.js';
-import Rating from '../models/Rating.js';
-
-const router = express.Router();
-
 // Get ratings for a specific store (for store owner dashboard)
 router.get('/:storeId/ratings', async (req, res) => {
   const { storeId } = req.params;
@@ -25,6 +17,12 @@ router.get('/:storeId/ratings', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+import express from 'express';
+import { body, query, validationResult } from 'express-validator';
+import Store from '../models/Store.js';
+import User from '../models/User.js';
+
+const router = express.Router();
 
 // Add new store (admin only)
 router.post('/add', [
@@ -40,7 +38,7 @@ router.post('/add', [
   const { name, email, address, ownerId } = req.body;
   try {
     const owner = await User.findByPk(ownerId);
-    if (!owner || owner.role !== 'store-owner') {
+    if (!owner || owner.role !== 'owner') {
       return res.status(400).json({ error: 'Owner not found or not a store owner' });
     }
     const store = await Store.create({ name, email, address, ownerId });
