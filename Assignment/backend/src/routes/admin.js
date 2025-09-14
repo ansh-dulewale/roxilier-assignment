@@ -1,10 +1,65 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
 import { query, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import Store from '../models/Store.js';
 import Rating from '../models/Rating.js';
 
 const router = express.Router();
+
+// Register new user (admin action)
+router.post('/register', async (req, res) => {
+  const { name, email, password, address, role } = req.body;
+  try {
+    // Check if user already exists
+    let user = await User.findOne({ where: { email } });
+    if (user) {
+      return res.status(400).json({ error: 'Email already registered' });
+    }
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      address,
+      role
+    });
+    res.status(201).json({ message: 'User registered', user });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
+
+// Add new store with owner creation
+router.post('/add-store', async (req, res) => {
+  const { name, email, address, ownerName, ownerEmail, ownerPassword, ownerAddress } = req.body;
+  try {
+    // Check if owner already exists
+    let owner = await User.findOne({ where: { email: ownerEmail } });
+    if (!owner) {
+      // Create new store owner
+      const hashedPassword = await bcrypt.hash(ownerPassword, 10);
+      owner = await User.create({
+        name: ownerName,
+        email: ownerEmail,
+        password: hashedPassword,
+        address: ownerAddress,
+        role: 'store-owner'
+      });
+    }
+    // Create the store and link to owner
+    const store = await Store.create({
+      name,
+      email,
+      address,
+      ownerId: owner.id
+    });
+    res.status(201).json({ message: 'Store and owner created', store, owner });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error', details: err.message });
+  }
+});
 
 // Dashboard stats
 router.get('/dashboard', async (req, res) => {
