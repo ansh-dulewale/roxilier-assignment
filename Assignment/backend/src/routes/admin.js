@@ -4,6 +4,7 @@ import { query, validationResult } from 'express-validator';
 import User from '../models/User.js';
 import Store from '../models/Store.js';
 import Rating from '../models/Rating.js';
+import sequelize from '../sequelize.js';
 
 const router = express.Router();
 
@@ -23,7 +24,8 @@ router.get('/dashboard', async (_req, res) => {
 router.post('/register', async (req, res) => {
   try {
     let { name, email, password, address, role } = req.body;
-    if (role === 'store-owner') role = 'owner';
+  // Normalize legacy role naming
+  if (role === 'store-owner') role = 'owner';
     if (!name || !email || !password || !address || !role) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -93,7 +95,7 @@ router.get(
     if (name) where.name = name;
     if (email) where.email = email;
     if (address) where.address = address;
-    if (role) where.role = role === 'store-owner' ? 'owner' : role;
+  if (role) where.role = role === 'store-owner' ? 'owner' : role;
     try {
       const users = await User.findAll({ where, order: [[sortBy, order]] });
       return res.json({ users });
@@ -148,5 +150,78 @@ router.get('/user/:id', async (req, res) => {
     return res.status(500).json({ error: 'Server error' });
   }
 });
+
+// Debug: list admin routes and methods (for troubleshooting)
+router.get('/routes', (_req, res) => {
+  try {
+    const routes = [];
+    router.stack.forEach((layer) => {
+      if (layer.route) {
+        const methods = Object.entries(layer.route.methods)
+          .filter(([, v]) => v)
+          .map(([k]) => k.toUpperCase());
+        routes.push({ path: layer.route.path, methods });
+      }
+    });
+    res.json({ routes });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to introspect routes', details: err.message });
+  }
+});
+
+// Delete a user and related data (admin only)
+async function deleteUserHandler(req, res) {
+  const { id } = req.params;
+  const t = await sequelize.transaction();
+  try {
+    const user = await User.findByPk(id, { transaction: t });
+    if (!user) {
+      await t.rollback();
+      return res.status(404).json({ error: 'User not found' });
+    }
+    // Delete user's ratings
+    await Rating.destroy({ where: { userId: id }, transaction: t });
+    // If the user is an owner, delete their stores and those stores' ratings
+    if (user.role === 'owner') {
+      const stores = await Store.findAll({ where: { ownerId: id }, transaction: t });
+      const storeIds = stores.map(s => s.id);
+      if (storeIds.length) {
+        await Rating.destroy({ where: { storeId: storeIds }, transaction: t });
+        await Store.destroy({ where: { id: storeIds }, transaction: t });
+      }
+    }
+    // Finally delete the user
+    await user.destroy({ transaction: t });
+    await t.commit();
+    return res.json({ message: 'User and related data deleted' });
+  } catch (err) {
+    await t.rollback();
+    return res.status(500).json({ error: 'Server error', details: err.message });
+  }
+}
+router.delete('/users/:id', deleteUserHandler);
+router.delete('/user/:id', deleteUserHandler);
+
+// Delete a store and its ratings (admin only)
+async function deleteStoreHandler(req, res) {
+  const { id } = req.params;
+  const t = await sequelize.transaction();
+  try {
+    const store = await Store.findByPk(id, { transaction: t });
+    if (!store) {
+      await t.rollback();
+      return res.status(404).json({ error: 'Store not found' });
+    }
+    await Rating.destroy({ where: { storeId: id }, transaction: t });
+    await store.destroy({ transaction: t });
+    await t.commit();
+    return res.json({ message: 'Store and ratings deleted' });
+  } catch (err) {
+    await t.rollback();
+    return res.status(500).json({ error: 'Server error', details: err.message });
+  }
+}
+router.delete('/stores/:id', deleteStoreHandler);
+router.delete('/store/:id', deleteStoreHandler);
 
 export default router;

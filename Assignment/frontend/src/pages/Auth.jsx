@@ -11,7 +11,7 @@ const Auth = () => {
     if (user) {
       if (user.role === "admin") {
         navigate("/admin");
-      } else if (["store-owner", "owner"].includes(user.role)) {
+      } else if (user.role === "owner") {
         navigate("/store-owner");
       } else if (user.role === "user") {
         navigate("/stores");
@@ -57,15 +57,10 @@ const Auth = () => {
           // Save user info and redirect
           login(data.user); // expects backend to return user object
           console.log("Login role:", data.user.role); // Debug log
-          if (data.user.role === "admin") {
-            navigate("/admin");
-          } else if (["store-owner", "owner"].includes(data.user.role)) {
-            navigate("/store-owner");
-          } else if (data.user.role === "user") {
-            navigate("/stores");
-          } else {
-            navigate("/auth");
-          }
+          if (data.user.role === "admin") navigate("/admin");
+          else if (data.user.role === "owner") navigate("/store-owner");
+          else if (data.user.role === "user") navigate("/stores");
+          else navigate("/auth");
         }
       } catch {
         setError("Server error");

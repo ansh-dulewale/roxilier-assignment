@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 
 const StoreList = () => {
@@ -30,15 +30,16 @@ const StoreList = () => {
         setLoading(false);
       });
     // Fetch user's ratings (replace with actual user ID or auth)
-    const userId = localStorage.getItem("userId");
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const userId = storedUser?.id;
     if (userId) {
-      fetch(`http://localhost:3000/api/rating/user/${userId}`)
+      fetch(`http://localhost:3000/api/v1/rating/user/${userId}`)
         .then((res) => res.json())
         .then((data) => {
           // Map storeId to rating value
           const ratingsMap = {};
           (data.ratings || []).forEach(r => {
-            ratingsMap[r.storeId] = r.value;
+            ratingsMap[r.storeId] = r.rating;
           });
           setUserRatings(ratingsMap);
         });
@@ -51,13 +52,24 @@ const StoreList = () => {
   const handleRatingSubmit = (storeId) => {
     setRatingLoading(true);
     setRatingError(null);
-    const userId = localStorage.getItem("userId");
-    fetch(`http://localhost:3000/api/rating`, {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    const userId = storedUser?.id;
+    if (!userId) {
+      setRatingError("You must be logged in to rate stores.");
+      return;
+    }
+    fetch(`http://localhost:3000/api/v1/rating/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ storeId, userId, value: ratingValue }),
+      body: JSON.stringify({ storeId, userId, rating: ratingValue }),
     })
-      .then((res) => res.json())
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.errors ? data.errors.map(e => e.msg).join(", ") : data.error || "Failed to submit rating");
+        }
+        return data;
+      })
       .then((data) => {
         setUserRatings((prev) => ({ ...prev, [storeId]: ratingValue }));
         setSelectedStore(null);
@@ -65,34 +77,38 @@ const StoreList = () => {
         // Refresh store list after rating
         fetchStoresAndRatings();
       })
-      .catch(() => {
-        setRatingError("Failed to submit rating");
+      .catch((err) => {
+        setRatingError(err.message || "Failed to submit rating");
         setRatingLoading(false);
       });
   };
 
 
-  const filteredStores = stores.filter((store) => {
-    const matchesName = store.name?.toLowerCase().includes(nameFilter.toLowerCase());
-    // Use address as location fallback if location is missing
-    const locationValue = store.location || store.address || "";
-    const matchesLocation = locationValue.toLowerCase().includes(locationFilter.toLowerCase());
-    return matchesName && matchesLocation;
-  });
+  const filteredStores = useMemo(() => {
+    const nameQ = nameFilter.toLowerCase();
+    const locQ = locationFilter.toLowerCase();
+    return stores.filter((store) => {
+      const matchesName = (store.name || "").toLowerCase().includes(nameQ);
+      const locationValue = store.location || store.address || "";
+      const matchesLocation = locationValue.toLowerCase().includes(locQ);
+      return matchesName && matchesLocation;
+    });
+  }, [stores, nameFilter, locationFilter]);
 
-  const sortedStores = [...filteredStores].sort((a, b) => {
+  const sortedStores = useMemo(() => [...filteredStores].sort((a, b) => {
     let valA, valB;
     if (sortBy === "name") {
-      valA = a.name.toLowerCase();
-      valB = b.name.toLowerCase();
+      valA = (a.name || "").toLowerCase();
+      valB = (b.name || "").toLowerCase();
     } else if (sortBy === "avgRating") {
-      valA = a.avgRating || 0;
-      valB = b.avgRating || 0;
+      // fallback to store.rating if avgRating is not present
+      valA = (a.avgRating ?? a.rating ?? 0);
+      valB = (b.avgRating ?? b.rating ?? 0);
     }
     if (valA < valB) return sortOrder === "asc" ? -1 : 1;
     if (valA > valB) return sortOrder === "asc" ? 1 : -1;
     return 0;
-  });
+  }), [filteredStores, sortBy, sortOrder]);
 
   if (loading) return <div>Loading stores...</div>;
   if (error) return <div>{error}</div>;
@@ -145,7 +161,7 @@ const StoreList = () => {
             <h3 className="text-xl font-semibold">{store.name}</h3>
             <p>{store.description}</p>
             <p>Location: {store.location || store.address || "N/A"}</p>
-            <p>Average Rating: {store.avgRating !== undefined ? store.avgRating : "N/A"}</p>
+            <p>Average Rating: {store.avgRating ?? store.rating ?? "N/A"}</p>
             <p>Your Rating: {userRatings[store.id] ? userRatings[store.id] : "Not rated"}</p>
             <button
               className="bg-blue-500 text-white px-2 py-1 rounded mt-2"
