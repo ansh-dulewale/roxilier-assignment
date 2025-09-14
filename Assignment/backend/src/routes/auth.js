@@ -8,6 +8,27 @@ import sequelize from '../sequelize.js';
 
 const router = express.Router();
 
+// Get admin details by email
+router.get('/admin/email/:email', async (req, res) => {
+  let { email } = req.params;
+  try {
+    email = decodeURIComponent(email);
+    const admin = await User.findOne({
+      where: {
+        email: email.toLowerCase(),
+        role: 'admin'
+      },
+      attributes: ['id', 'name', 'email', 'address', 'role']
+    });
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+    res.json({ admin });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get user details by id
 router.get('/user/id/:id', async (req, res) => {
   const { id } = req.params;

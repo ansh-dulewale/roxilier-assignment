@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard.jsx';
 import { useContext } from 'react';
 import { AuthContext } from './AuthContext.jsx';
 import Auth from './pages/Auth.jsx';
+import './index.css';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user, role, loading } = useContext(AuthContext);

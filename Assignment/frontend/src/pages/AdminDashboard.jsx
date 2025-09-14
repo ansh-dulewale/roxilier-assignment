@@ -8,7 +8,15 @@ const AdminDashboard = () => {
   const [storeFilters, setStoreFilters] = useState({ name: "", email: "", address: "" });
   const [selectedUser, setSelectedUser] = useState(null);
   const [addUserForm, setAddUserForm] = useState({ name: "", email: "", password: "", address: "", role: "user" });
-  const [addStoreForm, setAddStoreForm] = useState({ name: "", email: "", address: "" });
+  const [addStoreForm, setAddStoreForm] = useState({
+    name: "",
+    email: "",
+    address: "",
+    ownerName: "",
+    ownerEmail: "",
+    ownerPassword: "",
+    ownerAddress: ""
+  });
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
@@ -50,7 +58,7 @@ const AdminDashboard = () => {
   const handleAddUser = e => {
     e.preventDefault();
     setError(""); setSuccess("");
-  fetch("http://localhost:3000/api/v1/admin/add-user", {
+  fetch("http://localhost:3000/api/v1/admin/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(addUserForm),
@@ -67,16 +75,24 @@ const AdminDashboard = () => {
   const handleAddStore = e => {
     e.preventDefault();
     setError(""); setSuccess("");
-  fetch("http://localhost:3000/api/v1/admin/add-store", {
+    fetch("http://localhost:3000/api/v1/admin/add-store", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(addStoreForm),
     })
       .then(res => res.json())
       .then(data => {
-        setSuccess("Store added successfully.");
+        setSuccess("Store and owner added successfully.");
         setStores(prev => [...prev, data.store]);
-        setAddStoreForm({ name: "", email: "", address: "" });
+        setAddStoreForm({
+          name: "",
+          email: "",
+          address: "",
+          ownerName: "",
+          ownerEmail: "",
+          ownerPassword: "",
+          ownerAddress: ""
+        });
       })
       .catch(() => setError("Failed to add store"));
   };
@@ -119,10 +135,16 @@ const AdminDashboard = () => {
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-xl font-semibold mb-4 text-green-700">Add New Store</h3>
           <form onSubmit={handleAddStore} className="space-y-4">
-            <input type="text" placeholder="Name" value={addStoreForm.name} onChange={e => setAddStoreForm({ ...addStoreForm, name: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
-            <input type="email" placeholder="Email" value={addStoreForm.email} onChange={e => setAddStoreForm({ ...addStoreForm, email: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
-            <input type="text" placeholder="Address" value={addStoreForm.address} onChange={e => setAddStoreForm({ ...addStoreForm, address: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
-            <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded w-full font-semibold transition">Add Store</button>
+            <input type="text" placeholder="Store Name" value={addStoreForm.name} onChange={e => setAddStoreForm({ ...addStoreForm, name: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
+            <input type="email" placeholder="Store Email" value={addStoreForm.email} onChange={e => setAddStoreForm({ ...addStoreForm, email: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
+            <input type="text" placeholder="Store Address" value={addStoreForm.address} onChange={e => setAddStoreForm({ ...addStoreForm, address: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
+            <hr />
+            <h4 className="text-lg font-semibold mb-2 text-green-700">Store Owner Details</h4>
+            <input type="text" placeholder="Owner Name" value={addStoreForm.ownerName} onChange={e => setAddStoreForm({ ...addStoreForm, ownerName: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
+            <input type="email" placeholder="Owner Email" value={addStoreForm.ownerEmail} onChange={e => setAddStoreForm({ ...addStoreForm, ownerEmail: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
+            <input type="password" placeholder="Owner Password" value={addStoreForm.ownerPassword} onChange={e => setAddStoreForm({ ...addStoreForm, ownerPassword: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
+            <input type="text" placeholder="Owner Address" value={addStoreForm.ownerAddress} onChange={e => setAddStoreForm({ ...addStoreForm, ownerAddress: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-green-300" />
+            <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded w-full font-semibold transition">Add Store & Owner</button>
           </form>
         </div>
       </div>
