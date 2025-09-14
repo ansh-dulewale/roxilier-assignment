@@ -6,7 +6,8 @@ const UserProfile = () => {
   const [error, setError] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState(null);
-  const [password, setPassword] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
@@ -43,8 +44,9 @@ const UserProfile = () => {
     e.preventDefault();
     setError(null);
     setSuccess("");
-    const userId = localStorage.getItem("userId");
-    fetch(`http://localhost:3000/api/auth/user/${userId}`, {
+    const stored = JSON.parse(localStorage.getItem("user"));
+    const userId = stored?.id;
+    fetch(`http://localhost:3000/api/v1/auth/user/${userId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
@@ -64,16 +66,22 @@ const UserProfile = () => {
     e.preventDefault();
     setError(null);
     setSuccess("");
-    const userId = localStorage.getItem("userId");
-    fetch(`http://localhost:3000/api/auth/update-password`, {
+    const stored = JSON.parse(localStorage.getItem("user"));
+    const userId = stored?.id;
+    fetch(`http://localhost:3000/api/v1/auth/update-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, password }),
+      body: JSON.stringify({ userId, oldPassword, newPassword }),
     })
       .then((res) => res.json())
-      .then(() => {
-        setSuccess("Password updated successfully.");
-        setPassword("");
+      .then((data) => {
+        if (data.errors || data.error) {
+          setError(data.errors ? data.errors.map(e => e.msg).join(", ") : data.error);
+        } else {
+          setSuccess("Password updated successfully.");
+          setOldPassword("");
+          setNewPassword("");
+        }
       })
       .catch(() => {
         setError("Failed to update password");
@@ -118,8 +126,12 @@ const UserProfile = () => {
       <hr className="my-4" />
       <form onSubmit={handlePasswordUpdate} className="space-y-2">
         <div>
+          <label>Old Password:</label>
+          <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} className="border px-2 py-1 rounded w-full" />
+        </div>
+        <div>
           <label>New Password:</label>
-          <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="border px-2 py-1 rounded w-full" />
+          <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="border px-2 py-1 rounded w-full" />
         </div>
         <button className="bg-purple-500 text-white px-2 py-1 rounded" type="submit">Update Password</button>
       </form>

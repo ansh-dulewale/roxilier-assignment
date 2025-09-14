@@ -19,28 +19,63 @@ const AdminDashboard = () => {
   });
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    // Initial fetch
+    // Initial fetchers
     const fetchStats = () => {
       fetch("http://localhost:3000/api/v1/admin/dashboard")
         .then(res => res.json())
         .then(data => setStats(data))
         .catch(() => {});
     };
+    const fetchUsers = () => {
+      fetch("http://localhost:3000/api/v1/admin/users")
+        .then(res => res.json())
+        .then(data => setUsers(data.users || []))
+        .catch(() => {});
+    };
+    const fetchStores = () => {
+      fetch("http://localhost:3000/api/v1/admin/stores")
+        .then(res => res.json())
+        .then(data => setStores(data.stores || []))
+        .catch(() => {});
+    };
+
+    // Initial calls
     fetchStats();
-    // Poll every 5 seconds
-    const interval = setInterval(fetchStats, 5000);
-    // Users and stores only need to be fetched once (unless you want them realtime too)
-    fetch("http://localhost:3000/api/v1/admin/users")
-      .then(res => res.json())
-      .then(data => setUsers(data.users || []))
-      .catch(() => {});
-    fetch("http://localhost:3000/api/v1/admin/stores")
-      .then(res => res.json())
-      .then(data => setStores(data.stores || []))
-      .catch(() => {});
-    return () => clearInterval(interval);
+    fetchUsers();
+    fetchStores();
+
+    // Poll stats and stores every 5 seconds for near real-time updates
+    const statsInterval = setInterval(fetchStats, 5000);
+    const storesInterval = setInterval(fetchStores, 5000);
+
+    // Live updates via SSE for ratings
+    let es;
+    try {
+      es = new EventSource('http://localhost:3000/api/v1/store/ratings/stream');
+      es.onmessage = (evt) => {
+        try {
+          const data = JSON.parse(evt.data);
+          if (data?.type === 'rating:update' && data.storeId) {
+            setStores(prev => prev.map(s => s.id === Number(data.storeId) ? { ...s, avgRating: data.avgRating } : s));
+            // Also re-fetch stats because ratings count may change if it's first rating
+            fetchStats();
+          }
+        } catch (_) {
+          // ignore parse errors
+        }
+      };
+    } catch (_) {}
+
+    return () => {
+      clearInterval(statsInterval);
+      clearInterval(storesInterval);
+      if (es) {
+        es.close();
+      }
+    };
   }, []);
 
   const filteredUsers = users.filter(u =>
@@ -97,6 +132,77 @@ const AdminDashboard = () => {
       .catch(() => setError("Failed to add store"));
   };
 
+  const deleteUser = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this user and related data?')) return;
+    setDeleting(true); setError(""); setSuccess("");
+    try {
+      let res = await fetch(`http://localhost:3000/api/v1/admin/users/${id}`, { method: 'DELETE' });
+      let data = await res.json();
+      if (!res.ok && res.status === 404) {
+        // Try singular path fallback
+        res = await fetch(`http://localhost:3000/api/v1/admin/user/${id}`, { method: 'DELETE' });
+        try { data = await res.json(); } catch { data = {}; }
+      }
+      if (!res.ok) {
+        // If user not found, refresh users list to sync UI
+        if (res.status === 404) {
+          const usersRes = await fetch('http://localhost:3000/api/v1/admin/users');
+          const usersData = await usersRes.json();
+          setUsers(usersData.users || []);
+        }
+        throw new Error(data?.error || 'Failed to delete user');
+      }
+      setUsers(prev => prev.filter(u => u.id !== id));
+      // Deleting a user (owner) may delete stores; refetch stores and stats
+      const [storesRes, statsRes] = await Promise.all([
+        fetch('http://localhost:3000/api/v1/admin/stores'),
+        fetch('http://localhost:3000/api/v1/admin/dashboard')
+      ]);
+      const storesData = await storesRes.json();
+      const statsData = await statsRes.json();
+      setStores(storesData.stores || []);
+      setStats(statsData);
+      setSuccess('User deleted');
+    } catch (err) {
+      setError(err.message || 'Failed to delete user');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const deleteStore = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this store and its ratings?')) return;
+    setDeleting(true); setError(""); setSuccess("");
+    try {
+      let res = await fetch(`http://localhost:3000/api/v1/admin/stores/${id}`, { method: 'DELETE' });
+      let data = await res.json();
+      if (!res.ok && res.status === 404) {
+        // Try singular path fallback
+        res = await fetch(`http://localhost:3000/api/v1/admin/store/${id}`, { method: 'DELETE' });
+        try { data = await res.json(); } catch { data = {}; }
+      }
+      if (!res.ok) {
+        // If store not found, refresh stores list to sync UI
+        if (res.status === 404) {
+          const storesRes = await fetch('http://localhost:3000/api/v1/admin/stores');
+          const storesData = await storesRes.json();
+          setStores(storesData.stores || []);
+        }
+        throw new Error(data?.error || 'Failed to delete store');
+      }
+      setStores(prev => prev.filter(s => s.id !== id));
+      // Deleting a store affects stats; refetch stats
+      const statsRes = await fetch('http://localhost:3000/api/v1/admin/dashboard');
+      const statsData = await statsRes.json();
+      setStats(statsData);
+      setSuccess('Store deleted');
+    } catch (err) {
+      setError(err.message || 'Failed to delete store');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="p-4 max-w-7xl mx-auto bg-gray-50 min-h-screen">
       <h2 className="text-3xl font-bold mb-8 text-center text-blue-700">Admin Dashboard</h2>
@@ -127,7 +233,7 @@ const AdminDashboard = () => {
             <select value={addUserForm.role} onChange={e => setAddUserForm({ ...addUserForm, role: e.target.value })} className="border px-3 py-2 rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-300">
               <option value="user">Normal User</option>
               <option value="admin">Admin User</option>
-              <option value="store-owner">Store Owner</option>
+              <option value="owner">Store Owner</option>
             </select>
             <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full font-semibold transition">Add User</button>
           </form>
@@ -159,17 +265,21 @@ const AdminDashboard = () => {
               <option value="">All Roles</option>
               <option value="user">Normal User</option>
               <option value="admin">Admin User</option>
-              <option value="store-owner">Store Owner</option>
+              <option value="owner">Store Owner</option>
             </select>
           </div>
           <ul className="space-y-2 max-h-96 overflow-y-auto">
             {filteredUsers.map(u => (
               <li key={u.id} className="border p-3 rounded flex justify-between items-center hover:bg-gray-50 transition">
+                <span className="text-gray-400 mr-2">#{u.id}</span>
                 <span className="font-semibold text-gray-700">{u.name}</span>
                 <span className="text-gray-500">{u.email}</span>
                 <span className="text-gray-500">{u.address}</span>
                 <span className="text-gray-500">{u.role}</span>
-                <button className="bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded ml-2 text-blue-700 font-semibold transition" onClick={() => setSelectedUser(u)}>View Details</button>
+                <div className="flex gap-2 items-center">
+                  <button className="bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded text-blue-700 font-semibold transition" onClick={() => setSelectedUser(u)}>View Details</button>
+                  <button disabled={deleting} className="bg-red-100 hover:bg-red-200 px-3 py-1 rounded text-red-700 font-semibold transition disabled:opacity-50" onClick={() => deleteUser(u.id)}>Delete</button>
+                </div>
               </li>
             ))}
           </ul>
@@ -182,14 +292,21 @@ const AdminDashboard = () => {
             <input type="text" placeholder="Address" value={storeFilters.address} onChange={e => setStoreFilters({ ...storeFilters, address: e.target.value })} className="border px-2 py-1 rounded focus:outline-none focus:ring-2 focus:ring-green-300" />
           </div>
           <ul className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredStores.map(s => (
-              <li key={s.id} className="border p-3 rounded flex justify-between items-center hover:bg-gray-50 transition">
-                <span className="font-semibold text-gray-700">{s.name}</span>
-                <span className="text-gray-500">{s.email}</span>
-                <span className="text-gray-500">{s.address}</span>
-                <span className="text-green-600">Rating: {s.avgRating || "N/A"}</span>
-              </li>
-            ))}
+            {filteredStores.map(s => {
+              const rawRating = (s.avgRating ?? s.rating);
+              const hasRating = rawRating !== undefined && rawRating !== null;
+              const displayRating = hasRating ? Number(rawRating).toFixed(2) : "N/A";
+              return (
+                <li key={s.id} className="border p-3 rounded flex justify-between items-center hover:bg-gray-50 transition">
+                  <span className="text-gray-400 mr-2">#{s.id}</span>
+                  <span className="font-semibold text-gray-700">{s.name}</span>
+                  <span className="text-gray-500">{s.email}</span>
+                  <span className="text-gray-500">{s.address}</span>
+                  <span className="text-green-600">Rating: {displayRating}</span>
+                  <button disabled={deleting} className="bg-red-100 hover:bg-red-200 px-3 py-1 rounded text-red-700 font-semibold transition disabled:opacity-50" onClick={() => deleteStore(s.id)}>Delete</button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
@@ -201,7 +318,7 @@ const AdminDashboard = () => {
             <p className="mb-2"><strong>Email:</strong> {selectedUser.email}</p>
             <p className="mb-2"><strong>Address:</strong> {selectedUser.address}</p>
             <p className="mb-2"><strong>Role:</strong> {selectedUser.role}</p>
-            {selectedUser.role === "store-owner" && (
+            {selectedUser.role === "owner" && (
               <p className="mb-2"><strong>Rating:</strong> {selectedUser.avgRating || "N/A"}</p>
             )}
             <button className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mt-4 w-full font-semibold transition" onClick={() => setSelectedUser(null)}>Close</button>

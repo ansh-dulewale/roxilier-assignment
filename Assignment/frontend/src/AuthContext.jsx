@@ -7,20 +7,26 @@ export const AuthProvider = ({ children }) => {
   const [role, setRole] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const normalizeRole = (r) => (r === "store-owner" ? "owner" : r);
+
   useEffect(() => {
     // Example: get user info from localStorage or API
     const storedUser = JSON.parse(localStorage.getItem("user"));
     if (storedUser) {
-      setUser(storedUser);
-      setRole(storedUser.role);
+      const normalized = { ...storedUser, role: normalizeRole(storedUser.role) };
+      setUser(normalized);
+      setRole(normalized.role);
+      // Keep localStorage consistent going forward
+      localStorage.setItem("user", JSON.stringify(normalized));
     }
     setLoading(false);
   }, []);
 
   const login = (userData) => {
-    setUser(userData);
-    setRole(userData.role);
-    localStorage.setItem("user", JSON.stringify(userData));
+    const normalized = { ...userData, role: normalizeRole(userData.role) };
+    setUser(normalized);
+    setRole(normalized.role);
+    localStorage.setItem("user", JSON.stringify(normalized));
   };
 
   const logout = () => {

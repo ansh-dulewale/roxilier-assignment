@@ -26,25 +26,45 @@ function App() {
       <nav className="p-4 bg-gray-100 flex flex-wrap gap-4 items-center">
         {!user && <Link to="/auth">Login / Register</Link>}
   {user && role === "user" && <Link to="/stores">User Dashboard</Link>}
-  {user && role === "store-owner" && <Link to="/store-owner">Store Owner Dashboard</Link>}
+  {user && role === "owner" && <Link to="/store-owner">Store Owner Dashboard</Link>}
         {user && <Link to="/profile">Profile</Link>}
         {user && role === "admin" && <Link to="/admin">Admin Dashboard</Link>}
         {user && <button className="ml-auto bg-red-500 text-white px-3 py-1 rounded" onClick={logout}>Logout</button>}
       </nav>
       <Routes>
-  <Route path="/auth" element={!user ? <Auth /> : <Navigate to="/auth" />} />
+  <Route
+    path="/auth"
+    element={
+      !user ? (
+        <Auth />
+      ) : (
+        <Navigate
+          to={
+            role === "admin"
+              ? "/admin"
+              : role === "owner"
+              ? "/store-owner"
+              : role === "user"
+              ? "/stores"
+              : "/"
+          }
+          replace
+        />
+      )
+    }
+  />
         <Route path="/stores" element={
           <ProtectedRoute allowedRoles={["user"]}>
             <StoreList />
           </ProtectedRoute>
         } />
         <Route path="/store-owner" element={
-          <ProtectedRoute allowedRoles={["store-owner"]}>
+          <ProtectedRoute allowedRoles={["owner"]}>
             <StoreOwnerDashboard />
           </ProtectedRoute>
         } />
         <Route path="/profile" element={
-          <ProtectedRoute allowedRoles={["user", "admin", "store-owner"]}>
+          <ProtectedRoute allowedRoles={["user", "admin", "owner"]}>
             <UserProfile />
           </ProtectedRoute>
         } />
@@ -53,7 +73,27 @@ function App() {
             <AdminDashboard />
           </ProtectedRoute>
         } />
-  <Route path="/" element={user ? <Navigate to={role === "admin" ? "/admin" : role === "store-owner" ? "/store-owner" : role === "user" ? "/stores" : "/auth"} /> : <Login />} />
+  <Route
+    path="/"
+    element={
+      user ? (
+        <Navigate
+          to={
+            role === "admin"
+              ? "/admin"
+              : role === "owner"
+              ? "/store-owner"
+              : role === "user"
+              ? "/stores"
+              : "/auth"
+          }
+          replace
+        />
+      ) : (
+        <Login />
+      )
+    }
+  />
       </Routes>
     </BrowserRouter>
   );

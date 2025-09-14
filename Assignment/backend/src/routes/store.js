@@ -3,8 +3,21 @@ import { body, query, validationResult } from 'express-validator';
 import Store from '../models/Store.js';
 import User from '../models/User.js';
 import Rating from '../models/Rating.js';
+import { addClient, removeClient } from '../sse.js';
 
 const router = express.Router();
+
+// SSE stream for live rating updates
+router.get('/ratings/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+  addClient(res);
+  req.on('close', () => {
+    removeClient(res);
+  });
+});
 
 // Get ratings for a specific store (for store owner dashboard)
 router.get('/:storeId/ratings', async (req, res) => {
@@ -21,6 +34,33 @@ router.get('/:storeId/ratings', async (req, res) => {
       ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(2)
       : null;
     res.json({ ratings, avgRating });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get ratings across all stores owned by a given owner
+router.get('/owner/:ownerId/ratings', async (req, res) => {
+  const { ownerId } = req.params;
+  try {
+    // Find all stores owned by this user
+    const stores = await Store.findAll({ where: { ownerId }, attributes: ['id', 'name', 'email', 'address', 'rating'] });
+    if (!stores || stores.length === 0) {
+      return res.json({ ratings: [], avgRating: null, stores: [] });
+    }
+    const storeIds = stores.map(s => s.id);
+    // Get all ratings for these stores, include rater User and Store info
+    const ratings = await Rating.findAll({
+      where: { storeId: storeIds },
+      include: [
+        { model: User, attributes: ['id', 'name', 'email'] },
+        { model: Store, attributes: ['id', 'name'] },
+      ],
+    });
+    const avgRating = ratings.length
+      ? (ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length).toFixed(2)
+      : null;
+    res.json({ ratings, avgRating, stores });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
