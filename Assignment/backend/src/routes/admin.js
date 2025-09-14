@@ -5,10 +5,9 @@ import User from '../models/User.js';
 import Store from '../models/Store.js';
 import Rating from '../models/Rating.js';
 
-// Initialize router BEFORE defining routes
 const router = express.Router();
 
-// Dashboard stats (align keys with frontend expectations)
+// Dashboard stats (keys aligned with frontend expectations)
 router.get('/dashboard', async (_req, res) => {
   try {
     const users = await User.count();
@@ -24,31 +23,26 @@ router.get('/dashboard', async (_req, res) => {
 router.post('/register', async (req, res) => {
   try {
     let { name, email, password, address, role } = req.body;
-
-    // Normalize role from UI to DB enum
     if (role === 'store-owner') role = 'owner';
-
-    // Basic validations matching model constraints
     if (!name || !email || !password || !address || !role) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    // Check if user already exists
     const existing = await User.findOne({ where: { email } });
-    if (existing) {
-      return res.status(400).json({ error: 'Email already registered' });
-    }
-
+    if (existing) return res.status(400).json({ error: 'Email already registered' });
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      address,
-      role,
-    });
+    const user = await User.create({ name, email, password: hashedPassword, address, role });
     return res.status(201).json({ message: 'User registered', user });
   } catch (err) {
+    // Log and map common ORM errors to client-friendly responses
+    // eslint-disable-next-line no-console
+    console.error('[admin/register] error:', err);
+    const name = err?.name || '';
+    if (name.includes('SequelizeUniqueConstraintError')) {
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    if (name.includes('SequelizeValidationError')) {
+      return res.status(400).json({ error: 'Validation error', details: err.errors?.map(e => e.message) });
+    }
     return res.status(500).json({ error: 'Server error', details: err.message });
   }
 });
@@ -57,12 +51,9 @@ router.post('/register', async (req, res) => {
 router.post('/add-store', async (req, res) => {
   try {
     const { name, email, address, ownerName, ownerEmail, ownerPassword, ownerAddress } = req.body;
-
     if (!name || !email || !address || !ownerName || !ownerEmail || !ownerPassword || !ownerAddress) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-
-    // Check/create owner
     let owner = await User.findOne({ where: { email: ownerEmail } });
     if (!owner) {
       const hashedPassword = await bcrypt.hash(ownerPassword, 10);
@@ -74,8 +65,6 @@ router.post('/add-store', async (req, res) => {
         role: 'owner',
       });
     }
-
-    // Create store linked to owner
     const store = await Store.create({ name, email, address, ownerId: owner.id });
     return res.status(201).json({ message: 'Store and owner created', store, owner });
   } catch (err) {
@@ -83,7 +72,7 @@ router.post('/add-store', async (req, res) => {
   }
 });
 
-// List users with optional filtering and sorting
+// List users with filtering and sorting
 router.get(
   '/users',
   [
@@ -108,13 +97,13 @@ router.get(
     try {
       const users = await User.findAll({ where, order: [[sortBy, order]] });
       return res.json({ users });
-    } catch (_err) {
+    } catch (err) {
       return res.status(500).json({ error: 'Server error' });
     }
   }
 );
 
-// List stores with optional filtering and sorting
+// List stores with filtering and sorting
 router.get(
   '/stores',
   [
@@ -136,16 +125,15 @@ router.get(
     if (address) where.address = address;
     try {
       const stores = await Store.findAll({ where, order: [[sortBy, order]] });
-      // Map to include avgRating for frontend compatibility
       const mapped = stores.map((s) => ({ ...s.toJSON(), avgRating: s.rating }));
       return res.json({ stores: mapped });
-    } catch (_err) {
+    } catch (err) {
       return res.status(500).json({ error: 'Server error' });
     }
   }
 );
 
-// User details (with rating info if owner)
+// User details (with rating if store owner)
 router.get('/user/:id', async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
@@ -156,7 +144,7 @@ router.get('/user/:id', async (req, res) => {
       ownerRating = stores.map((store) => ({ storeId: store.id, avgRating: store.rating }));
     }
     return res.json({ user, ownerRating });
-  } catch (_err) {
+  } catch (err) {
     return res.status(500).json({ error: 'Server error' });
   }
 });

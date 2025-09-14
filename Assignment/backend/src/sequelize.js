@@ -1,5 +1,3 @@
-
-// Sequelize configuration for MySQL (ES module)
 import { Sequelize } from 'sequelize';
 
 const sequelize = new Sequelize('roxilier_db', 'root', 'Dulewale@12', {
