@@ -13,18 +13,26 @@ const AdminDashboard = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/admin/dashboard")
-      .then(res => res.json())
-      .then(data => setStats(data))
-      .catch(() => {});
-    fetch("http://localhost:3000/api/admin/users")
+    // Initial fetch
+    const fetchStats = () => {
+      fetch("http://localhost:3000/api/v1/admin/dashboard")
+        .then(res => res.json())
+        .then(data => setStats(data))
+        .catch(() => {});
+    };
+    fetchStats();
+    // Poll every 5 seconds
+    const interval = setInterval(fetchStats, 5000);
+    // Users and stores only need to be fetched once (unless you want them realtime too)
+    fetch("http://localhost:3000/api/v1/admin/users")
       .then(res => res.json())
       .then(data => setUsers(data.users || []))
       .catch(() => {});
-    fetch("http://localhost:3000/api/admin/stores")
+    fetch("http://localhost:3000/api/v1/admin/stores")
       .then(res => res.json())
       .then(data => setStores(data.stores || []))
       .catch(() => {});
+    return () => clearInterval(interval);
   }, []);
 
   const filteredUsers = users.filter(u =>
@@ -42,7 +50,7 @@ const AdminDashboard = () => {
   const handleAddUser = e => {
     e.preventDefault();
     setError(""); setSuccess("");
-    fetch("http://localhost:3000/api/admin/add-user", {
+  fetch("http://localhost:3000/api/v1/admin/add-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(addUserForm),
@@ -59,7 +67,7 @@ const AdminDashboard = () => {
   const handleAddStore = e => {
     e.preventDefault();
     setError(""); setSuccess("");
-    fetch("http://localhost:3000/api/admin/add-store", {
+  fetch("http://localhost:3000/api/v1/admin/add-store", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(addStoreForm),

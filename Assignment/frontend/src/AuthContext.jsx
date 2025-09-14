@@ -24,9 +24,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    setUser(null);
-    setRole("");
-    localStorage.removeItem("user");
+    fetch("http://localhost:3000/api/v1/auth/logout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }).finally(() => {
+      setUser(null);
+      setRole("");
+      localStorage.removeItem("user");
+    });
   };
 
   return (

@@ -4,8 +4,25 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import User from '../models/User.js';
+import sequelize from '../sequelize.js';
 
 const router = express.Router();
+
+// Get user details by id
+router.get('/user/id/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = await User.findByPk(id, {
+      attributes: ['id', 'name', 'email', 'address', 'role']
+    });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 // Logout route (JWT-based, just a placeholder for frontend to clear token)
 router.post('/logout', (req, res) => {
@@ -87,6 +104,29 @@ router.post('/login', [
     }
     const token = jwt.sign({ id: user.id, role: user.role }, 'your_jwt_secret', { expiresIn: '1h' });
     res.json({ token, user });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get user details by email
+router.get('/user/email/:email', async (req, res) => {
+  let { email } = req.params;
+  try {
+    // Decode email in case it's URL-encoded
+    email = decodeURIComponent(email);
+    // Case-insensitive search for email
+    const user = await User.findOne({
+      where: sequelize.where(
+        sequelize.fn('LOWER', sequelize.col('email')),
+        email.toLowerCase()
+      ),
+      attributes: ['id', 'name', 'email', 'address', 'role']
+    });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ user });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
